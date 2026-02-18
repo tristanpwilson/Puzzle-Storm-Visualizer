@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lichess Storm Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    table { border-collapse: collapse; margin-top: 20px; }
+    td, th { border: 1px solid #ccc; padding: 6px 10px; }
+    .error { color: red; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Lichess Puzzle Storm API Test</h1>
+  <div id="status">Loading...</div>
+  <div id="error" class="error"></div>
+  <div id="output"></div>
+
+  <script>
+    async function getPsData(username, days = 30) {
+      const url = `https://lichess.org/api/storm/dashboard/${encodeURIComponent(username)}?days=${days}`;
+      const res = await fetch(url, { method: "GET" });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return res.json();
+    }
+
+    async function run() {
+      const username = "srirachachacha";
+      const statusEl = document.getElementById("status");
+      const errorEl = document.getElementById("error");
+      const outputEl = document.getElementById("output");
+
+      try {
+        const data = await getPsData(username, 30);
+
+        console.log("Raw API response:", data);
+
+        statusEl.textContent = `Loaded data for ${username}`;
+
+        if (!data.days || data.days.length === 0) {
+          outputEl.textContent = "No daily history returned.";
+          return;
+        }
+
+        // Sort by date ascending (just in case)
+        const sorted = [...data.days].sort((a, b) => 
+          new Date(a._id) - new Date(b._id)
+        );
+
+        const table = document.createElement("table");
+        const header = document.createElement("tr");
+        header.innerHTML = "<th>Date</th><th>Score</th>";
+        table.appendChild(header);
+
+        sorted.forEach(d => {
+          const row = document.createElement("tr");
+          row.innerHTML = `<td>${d._id}</td><td>${d.score}</td>`;
+          table.appendChild(row);
+        });
+
+        outputEl.appendChild(table);
+
+      } catch (err) {
+        console.error("Fetch failed:", err);
+        statusEl.textContent = "Request failed";
+        errorEl.textContent = err.message + " (Check console for CORS details)";
+      }
+    }
+
+    run();
+  </script>
+</body>
+</html>
